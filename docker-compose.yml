@@ -1,0 +1,53 @@
+name: barista
+services:
+  database:
+    container_name: database
+    image: mysql:latest
+    restart: always
+    environment:
+      MYSQL_DATABASE: 'BaristaDb'
+      MYSQL_USER: 'user'
+      MYSQL_PASSWORD: 'password'
+      MYSQL_ROOT_PASSWORD: 'password'
+    ports:
+      - '3306:3306'
+    volumes:
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - barista_net
+  barista_backend:
+    container_name: barista_backend
+    image: ${DOCKER_REGISTRY-}barista_backend
+    build:
+      context: .
+      dockerfile: Barista-Backend/BaristaAPI/Dockerfile
+    ports:
+      - "8000:8080"
+    environment:
+      - "ConnectionStrings:DbConnectionString=Server=database;Port=3306;Database=BaristaDb;User=user;Password=password;"     
+    depends_on:
+      - database
+    networks:
+      - barista_net
+  frontend:
+    container_name: frontend
+    build: ./Barista-Frontend
+    volumes:
+      - './:/app'
+      - '/app/node_modules'
+    ports:
+      - 3000:3000
+    stdin_open: true
+    command: npm start
+    environment:
+      - REACT_APP_API=http://localhost:8000/api
+    depends_on:
+      - barista_backend
+    networks:
+      - barista_net
+networks:
+  barista_net:
+    driver: bridge
+volumes:
+  my-db:
+  
